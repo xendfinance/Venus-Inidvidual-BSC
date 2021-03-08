@@ -98,7 +98,7 @@ contract XendFinanceIndividual_Yearn_V1 is
     }
 
     function setAdapterAddress() external onlyOwner {
-        LendingAdapterAddress = lendingService.GetDUSDLendingAdapterAddress();
+        LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
     }
 
     function setMinimumLockPeriod (uint256 minimumLockPeriod) external onlyNonDeprecatedCalls onlyOwner {
@@ -299,9 +299,9 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         _validateLockTimeHasElapsedAndHasNotWithdrawn(recordId);
 
-        uint256 balanceBeforeWithdraw = lendingService.UserDUSDBalance(address(this));
+        uint256 balanceBeforeWithdraw = lendingService.UserDAIBalance(address(this));
 
-          LendingAdapterAddress = lendingService.GetDUSDLendingAdapterAddress();
+          LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
 
         bool isApprovalSuccessful = derivativeToken.approve(LendingAdapterAddress, derivativeAmount);
          
@@ -309,7 +309,7 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         lendingService.WithdrawBySharesOnly(derivativeAmount);
 
-        uint256 balanceAfterWithdraw = lendingService.UserDUSDBalance(address(this));
+        uint256 balanceAfterWithdraw = lendingService.UserDAIBalance(address(this));
         
         require(balanceAfterWithdraw>balanceBeforeWithdraw, "Balance before needs to be greater than balance after");
 
@@ -362,9 +362,9 @@ contract XendFinanceIndividual_Yearn_V1 is
     {
         _validateUserBalanceIsSufficient(recipient, derivativeAmount);
 
-        uint256 balanceBeforeWithdraw = lendingService.UserDUSDBalance(address(this));
+        uint256 balanceBeforeWithdraw = lendingService.UserDAIBalance(address(this));
  
-        LendingAdapterAddress = lendingService.GetDUSDLendingAdapterAddress();
+        LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
 
         bool isApprovalSuccessful = derivativeToken.approve(LendingAdapterAddress, derivativeAmount);
          
@@ -372,7 +372,7 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         lendingService.WithdrawBySharesOnly(derivativeAmount);
 
-        uint256 balanceAfterWithdraw = lendingService.UserDUSDBalance(address(this));
+        uint256 balanceAfterWithdraw = lendingService.UserDAIBalance(address(this));
 
         require(balanceAfterWithdraw>balanceBeforeWithdraw, "Balance before needs to be greater than balance after");
         
@@ -547,7 +547,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             isSuccessful,
             "Could not complete deposit process from token contract"
         );
-        LendingAdapterAddress = lendingService.GetDUSDLendingAdapterAddress();
+        LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
         
         _busd.approve(LendingAdapterAddress, amountTransferrable);
 
@@ -611,7 +611,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             "Could not complete deposit process from token contract"
         );
         
-        LendingAdapterAddress = lendingService.GetDUSDLendingAdapterAddress();
+        LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
         
         _busd.approve(LendingAdapterAddress, amountTransferrable);
 

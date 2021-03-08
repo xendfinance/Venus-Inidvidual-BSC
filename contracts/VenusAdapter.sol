@@ -2,12 +2,12 @@ pragma solidity 0.6.6;
 
 import "./IVDai.sol";
 import "./SafeMath.sol";
-import "./Ownable.sol";
+import "./OwnableService.sol";
 import "./ReentrancyGuard.sol";
 import "./SafeERC20.sol";
 
 
-contract VenusAdapter is Ownable, ReentrancyGuard{
+contract VenusAdapter is OwnableService, ReentrancyGuard{
     
     using SafeMath for uint256;
     
@@ -19,7 +19,7 @@ contract VenusAdapter is Ownable, ReentrancyGuard{
 
      IERC20 immutable _BUSD;
 
-     constructor(address payable serviceContract) public Ownable(serviceContract){
+     constructor(address payable serviceContract) public OwnableService(serviceContract){
         _vBUSD = IVDai(0x95c78222B3D6e262426483D42CfA53685A67Ab9D); // Venus BUSD Shares
         _BUSD = IERC20(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56); // Pegged-BUSD address on BSC Main Network
      }
