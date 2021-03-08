@@ -8,7 +8,7 @@ import "./SafeERC20.sol";
 import "./ReentrancyGuard.sol";
 import "./SafeMath.sol";
 import "./Ownable.sol";
-import "./IDUSDLendingService.sol";
+import "./IVenusLendingService.sol";
 import "./IRewardConfig.sol";
 import "./IClientRecord.sol";
 import "./IERC20.sol";
@@ -16,7 +16,7 @@ import "./Address.sol";
 import "./ISavingsConfig.sol";
 import "./ISavingsConfigSchema.sol";
 import "./ITreasury.sol";
-import "./IibDUSD.sol";
+import "./IVDai.sol";
 import "./IXendToken.sol";
 
 contract XendFinanceIndividual_Yearn_V1 is
@@ -51,12 +51,12 @@ contract XendFinanceIndividual_Yearn_V1 is
         uint256 amount
     );
 
-    IDUSDLendingService lendingService;
-    IERC20 _dusd;
+    IVenusLendingService lendingService;
+    IERC20 _busd;
     IClientRecord clientRecordStorage;
     IRewardConfig rewardConfig;
     ISavingsConfig savingsConfig;
-    IibDUSD derivativeToken;
+    IVDai derivativeToken;
     ITreasury treasury;
     IXendToken xendToken;
 
@@ -87,12 +87,12 @@ contract XendFinanceIndividual_Yearn_V1 is
         address xendTokenAddress,
         address treasuryAddress
     ) public {
-        lendingService = IDUSDLendingService(lendingServiceAddress);
-        _dusd = IERC20(tokenAddress);
+        lendingService = IVenusLendingService(lendingServiceAddress);
+        _busd = IERC20(tokenAddress);
         clientRecordStorage = IClientRecord(clientRecordStorageAddress);
         savingsConfig = ISavingsConfig(savingsConfigAddress);
         rewardConfig = IRewardConfig(rewardConfigAddress);
-        derivativeToken = IibDUSD(derivativeTokenAddress);
+        derivativeToken = IVDai(derivativeTokenAddress);
         treasury = ITreasury(treasuryAddress);
         xendToken = IXendToken(xendTokenAddress);
     }
@@ -322,11 +322,11 @@ contract XendFinanceIndividual_Yearn_V1 is
         uint256 amountToSendToDepositor =
             amountOfUnderlyingAssetWithdrawn.sub(commissionFees);
 
-        _dusd.safeTransfer(recipient, amountToSendToDepositor);
+        _busd.safeTransfer(recipient, amountToSendToDepositor);
 
         if (commissionFees > 0) {
-            _dusd.approve(address(treasury), commissionFees);
-            treasury.depositToken(address(_dusd));
+            _busd.approve(address(treasury), commissionFees);
+            treasury.depositToken(address(_busd));
         }
 
         clientRecordStorage.UpdateDepositRecordMapping(
@@ -386,11 +386,11 @@ contract XendFinanceIndividual_Yearn_V1 is
         uint256 amountToSendToDepositor =
             amountOfUnderlyingAssetWithdrawn.sub(commissionFees);
 
-        _dusd.safeTransfer(recipient, amountToSendToDepositor);
+        _busd.safeTransfer(recipient, amountToSendToDepositor);
 
         if (commissionFees > 0) {
-            _dusd.approve(address(treasury), commissionFees);
-            treasury.depositToken(address(_dusd));
+            _busd.approve(address(treasury), commissionFees);
+            treasury.depositToken(address(_busd));
         }
 
         ClientRecord memory clientRecord =
@@ -529,7 +529,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         address recipient = address(this);
 
         uint256 amountTransferrable =
-            _dusd.allowance(depositorAddress, recipient);
+            _busd.allowance(depositorAddress, recipient);
 
             require(lockPeriodInSeconds >= minLockPeriod, "Minimum lock period must be 3 months");
 
@@ -538,7 +538,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             "Approve an amount > 0 for token before proceeding"
         );
         bool isSuccessful =
-            _dusd.transferFrom(
+            _busd.transferFrom(
                 depositorAddress,
                 recipient,
                 amountTransferrable
@@ -549,7 +549,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         );
         LendingAdapterAddress = lendingService.GetDUSDLendingAdapterAddress();
         
-        _dusd.approve(LendingAdapterAddress, amountTransferrable);
+        _busd.approve(LendingAdapterAddress, amountTransferrable);
 
         uint256 balanceBeforeDeposit = lendingService.UserShares(recipient);
 
@@ -594,14 +594,14 @@ contract XendFinanceIndividual_Yearn_V1 is
     function _deposit(address payable depositorAddress) internal {
         address recipient = address(this);
         uint256 amountTransferrable =
-            _dusd.allowance(depositorAddress, recipient);
+            _busd.allowance(depositorAddress, recipient);
 
         require(
             amountTransferrable > 0,
             "Approve an amount > 0 for token before proceeding"
         );
         bool isSuccessful =
-            _dusd.transferFrom(
+            _busd.transferFrom(
                 depositorAddress,
                 recipient,
                 amountTransferrable
@@ -613,7 +613,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         
         LendingAdapterAddress = lendingService.GetDUSDLendingAdapterAddress();
         
-        _dusd.approve(LendingAdapterAddress, amountTransferrable);
+        _busd.approve(LendingAdapterAddress, amountTransferrable);
 
         uint256 balanceBeforeDeposit = lendingService.UserShares(recipient);
 
