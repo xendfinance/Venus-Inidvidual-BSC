@@ -16,7 +16,7 @@ import "./Address.sol";
 import "./ISavingsConfig.sol";
 import "./ISavingsConfigSchema.sol";
 import "./ITreasury.sol";
-import "./IVDai.sol";
+import "./IVBUSD.sol";
 import "./IXendToken.sol";
 
 contract XendFinanceIndividual_Yearn_V1 is
@@ -56,7 +56,7 @@ contract XendFinanceIndividual_Yearn_V1 is
     IClientRecord clientRecordStorage;
     IRewardConfig rewardConfig;
     ISavingsConfig savingsConfig;
-    IVDai derivativeToken;
+    IVBUSD derivativeToken;
     ITreasury treasury;
     IXendToken xendToken;
 
@@ -92,7 +92,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         clientRecordStorage = IClientRecord(clientRecordStorageAddress);
         savingsConfig = ISavingsConfig(savingsConfigAddress);
         rewardConfig = IRewardConfig(rewardConfigAddress);
-        derivativeToken = IVDai(derivativeTokenAddress);
+        derivativeToken = IVBUSD(derivativeTokenAddress);
         treasury = ITreasury(treasuryAddress);
         xendToken = IXendToken(xendTokenAddress);
     }
