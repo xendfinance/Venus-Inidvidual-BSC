@@ -115,6 +115,7 @@ module.exports = function (deployer) {
    
     let savingsConfigContract = null
     let xendTokenContract = null;
+    let groupsContract =null;
     let venusLendingService = null;
     let rewardConfigContract = null;
     let clientRecordContract = null;
@@ -128,6 +129,7 @@ module.exports = function (deployer) {
     savingsConfigContract = await SavingsConfigContract.deployed();
     xendTokenContract = await XendTokenContract.deployed();
     venusLendingService = await VenusLendingService.deployed();
+    groupsContract = await GroupsContract.deployed();
     clientRecordContract = await ClientRecordContract.deployed();
     rewardConfigContract = await RewardConfigContract.deployed();
     individualContract = await XendFinanceIndividual_Yearn_V1Contract.deployed();
