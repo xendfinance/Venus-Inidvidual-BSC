@@ -127,7 +127,7 @@ module.exports = function (deployer) {
      await rewardConfigContract.SetRewardParams("100000000000000000000000000", "10000000000000000000000000", "2", "7", "10","15", "4","60", "4");
 
      //13. 
-     await rewardConfigContract.SetRewardActive(true);
+     await rewardConfigContract.SetRewardActive(false);
    
 
     

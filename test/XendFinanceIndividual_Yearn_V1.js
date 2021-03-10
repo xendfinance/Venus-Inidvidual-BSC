@@ -269,6 +269,14 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
 
      await contractInstance.FixedDeposit(depositDateInSeconds, lockPeriodInSeconds);
 
+     let balanceAfterDeposit = await daiContract.methods
+     .balanceOf(account1)
+     .call();
+
+   console.log(
+     `Recipient: ${account1} DAI Balance after deposit: ${balanceAfterDeposit}`
+   );
+
      let depositRecord = await clientRecordContract.GetRecordById(1);
 
     
@@ -292,7 +300,19 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
 
     let result = await contractInstance.WithdrawFromFixedDeposit(BigInt(depositRecord[0]), BigInt(amountToWithdraw.toFixed(0)));
 
-    console.log(result)
+    let balanceAfterWithdrawal = await daiContract.methods
+     .balanceOf(account1)
+     .call();
+
+   console.log(
+     `Recipient: ${account1} DAI Balance after withdrawal: ${balanceAfterWithdrawal}`
+   );
+
+   assert(balanceAfterWithdrawal >= balanceAfterDeposit);
+
+    // console.log(result)
+
+    assert(result.receipt.status == true)
 
   })
 });

@@ -353,7 +353,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         );
         
 
-       //  _rewardUserWithTokens(lockPeriod, derivativeAmount, recipient);
+         _rewardUserWithTokens(lockPeriod, derivativeAmount, recipient);
 
         emit DerivativeAssetWithdrawn(
             recipient,
