@@ -75,7 +75,7 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
   let clientRecordContract = null;
   let venusAdapter = null;
 
-  beforeEach(async () => {
+  before(async () => {
     savingsConfigContract = await SavingsConfigContract.deployed();
     xendTokenContract = await XendTokenContract.deployed();
     venusLendingService = await VenusLendingService.deployed();
@@ -169,7 +169,7 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
     assert(doesClientRecordExistResult == false);
   });
 
-  it("should deposit", async () => {
+  it("should deposit and withdraw in flexible savings", async () => {
     console.log(contractInstance.address, "address");
 
     //  Give allowance to the xend finance individual to spend DAI on behalf of account 1 and 2
@@ -241,35 +241,58 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
       "lol"
     );
 
-    // // second deposit
 
-    // //  Give allowance to the xend finance individual to spend DAI on behalf of account 1 and 2
-    // var approvedAmountToSpend = BigInt(2000000000000000000); //   1,000 Dai
-
-    // await approveDai(contractInstance.address, account2, approvedAmountToSpend);
-
-    // // await clientRecord.createClientRecord(accounts[2], 0, 0, 0, 0, 0, {from : accounts[3]})
-    // let balance2BeforeDeposit = await daiContract.methods
-    //   .balanceOf(account2)
-    //   .call();
-
-    // console.log(
-    //   `Recipient: ${account2} DAI Balance before deposit: ${balance2BeforeDeposit}`
-    // );
-
-    // await contractInstance.deposit({ from: account2 });
-
-    // //second withdrawal
-    // let secondAmountToWithdraw = BigInt(9000000000);
-
-    // await contractInstance.withdraw(secondAmountToWithdraw);
-
-    // let balance2AfterWithdrawal = await daiContract.methods
-    //   .balanceOf(account2)
-    //   .call();
-
-    // console.log(
-    //   `Recipient: ${account2} DAI Balance after withdrawal: ${balance2AfterWithdrawal}`
-    // );
   });
+
+  it("should deposit and withdraw in fixed deposit savings", async () => {
+     //  Give allowance to the xend finance individual to spend DAI on behalf of account 1 and 2
+     var approvedAmountToSpend = BigInt(2000000000000000000); //   1,000 Dai
+
+     await sendDai(approvedAmountToSpend, account1);
+ 
+     await approveDai(contractInstance.address, account1, approvedAmountToSpend);
+ 
+     // await clientRecord.createClientRecord(accounts[2], 0, 0, 0, 0, 0, {from : accounts[3]})
+     let balanceBeforeDeposit = await daiContract.methods
+       .balanceOf(account1)
+       .call();
+ 
+     console.log(
+       `Recipient: ${account1} DAI Balance before deposit: ${balanceBeforeDeposit}`
+     );
+
+     let depositDateInSeconds = Date.now().toString();
+     
+     let lockPeriodInSeconds  = "2"
+
+     await contractInstance.setMinimumLockPeriod(lockPeriodInSeconds);
+
+     await contractInstance.FixedDeposit(depositDateInSeconds, lockPeriodInSeconds);
+
+     let depositRecord = await clientRecordContract.GetRecordById(1);
+
+    
+     console.log(
+      `record id: ${BigInt(depositRecord[0])}`,
+      `depositor address:  ${BigInt(depositRecord[1])}`,
+      `amount:  ${BigInt(depositRecord[2])}`,
+      `deposit date in seconds:  ${BigInt(depositRecord[3])}`,
+      `lock period in seconds:  ${BigInt(depositRecord[4])}`,
+      `withdrawn:  ${BigInt(depositRecord[5])}`,
+      "deposit record details"
+    );
+
+    //const waitTime = (seconds) => new Promise(resolve => setTimeout(resolve, seconds * 1000));
+
+    const pricePerFullShare = await venusAdapter.GetPricePerFullShare();
+
+    let amountToWithdraw = depositRecord[2] / pricePerFullShare;
+
+    //waitTime(60);
+
+    let result = await contractInstance.WithdrawFromFixedDeposit(BigInt(depositRecord[0]), BigInt(amountToWithdraw.toFixed(0)));
+
+    console.log(result)
+
+  })
 });

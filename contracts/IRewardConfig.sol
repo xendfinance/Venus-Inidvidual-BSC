@@ -3,9 +3,9 @@ pragma solidity ^0.6.6;
 
 interface IRewardConfig{
 
-    function CalculateIndividualSavingsReward(uint totalCycleTimeInSeconds, uint amountDeposited) external view returns(uint);
+    function CalculateIndividualSavingsReward(uint256 totalCycleTimeInSeconds, uint256 amountDeposited) external view returns(uint256);
 
-    function CalculateCooperativeSavingsReward(uint totalCycleTimeInSeconds, uint amountDeposited) external view returns(uint);
+    function CalculateCooperativeSavingsReward(uint256 totalCycleTimeInSeconds, uint256 amountDeposited) external view returns(uint256);
     
-    function CalculateEsusuReward(uint totalCycleTimeInSeconds, uint amountDeposited) external view returns(uint);
+    function CalculateEsusuReward(uint256 totalCycleTimeInSeconds, uint256 amountDeposited) external view returns(uint256);
 }

@@ -299,6 +299,8 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         _validateLockTimeHasElapsedAndHasNotWithdrawn(recordId);
 
+        
+
         uint256 balanceBeforeWithdraw = lendingService.UserDAIBalance(address(this));
 
           LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
@@ -324,6 +326,8 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         _busd.safeTransfer(recipient, amountToSendToDepositor);
 
+       
+
         if (commissionFees > 0) {
             _busd.approve(address(treasury), commissionFees);
             treasury.depositToken(address(_busd));
@@ -337,6 +341,8 @@ contract XendFinanceIndividual_Yearn_V1 is
             msg.sender,
             true
         );
+
+        
         clientRecordStorage.CreateDepositorAddressToDepositRecordMapping(
             recipient,
             depositRecord.recordId,
@@ -345,8 +351,9 @@ contract XendFinanceIndividual_Yearn_V1 is
             depositDate,
             true
         );
+        
 
-        _rewardUserWithTokens(lockPeriod, derivativeAmount, recipient);
+       //  _rewardUserWithTokens(lockPeriod, derivativeAmount, recipient);
 
         emit DerivativeAssetWithdrawn(
             recipient,
