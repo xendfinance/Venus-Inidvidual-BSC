@@ -393,9 +393,6 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
 
     currentTimeStamp = await contractInstance.currentTimeStamp();
 
-<<<<<<< HEAD
-    let result = await contractInstance.WithdrawFromFixedDeposit(BigInt(depositRecord[0]).toString(), (BigInt(amountToWithdraw.toFixed(0))).toString());
-=======
     console.log(BigInt(currentTimeStamp).toString(), "after await current timestamp");
 
     await sendDai(approvedAmountToSpend, account1);
@@ -405,7 +402,6 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
    await contractInstance.FixedDeposit(depositDateInSeconds, lockPeriodInSeconds);
 
     let result = await contractInstance.WithdrawFromFixedDeposit("1");
->>>>>>> 3c1ec060fe8b6837dfc76364bac184f064e4f286
 
     let balanceAfterWithdrawal = await daiContract.methods
      .balanceOf(account1)

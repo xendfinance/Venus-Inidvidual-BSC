@@ -339,7 +339,7 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         require(
             isApprovalSuccessful == true,
-            "could not approve idusd token for adapter contract"
+            "could not approve busd token for adapter contract"
         );
 
         lendingService.WithdrawBySharesOnly(derivativeAmount);
@@ -570,7 +570,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             uint256 recordId,
             address payable depositorId,
             uint256 amount,
-            uint256 amountOfyDai,
+            uint256 amountOfVBUSD,
             uint256 depositDateInSeconds,
             uint256 lockPeriodInSeconds,
             bool hasWithdrawn
@@ -583,7 +583,7 @@ contract XendFinanceIndividual_Yearn_V1 is
                 amount,
                 depositDateInSeconds,
                 lockPeriodInSeconds,
-                amountOfyDai
+                amountOfVBUSD
             );
         return fixedDepositRecord;
     }
@@ -606,12 +606,8 @@ contract XendFinanceIndividual_Yearn_V1 is
             amountTransferrable > 0,
             "Approve an amount > 0 for token before proceeding"
         );
-        bool isSuccessful =
-            _busd.transferFrom(msg.sender, recipient, amountTransferrable);
-        require(
-            isSuccessful,
-            "Could not complete deposit process from token contract"
-        );
+
+        _busd.safeTransferFrom(msg.sender, recipient, amountTransferrable);
 
         LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
 
@@ -623,12 +619,12 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         uint256 balanceAfterDeposit = lendingService.UserShares(recipient);
 
-        uint256 amountOfyDai = balanceAfterDeposit.sub(balanceBeforeDeposit);
+        uint256 amountOfVBUSD = balanceAfterDeposit.sub(balanceBeforeDeposit);
 
         uint256 recordId =
             clientRecordStorage.CreateDepositRecordMapping(
                 amountTransferrable,
-                amountOfyDai,
+                amountOfVBUSD,
                 lockPeriodInSeconds,
                 depositDateInSeconds,
                 msg.sender,
@@ -645,7 +641,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             msg.sender,
             recordId,
             amountTransferrable,
-            amountOfyDai,
+            amountOfVBUSD,
             lockPeriodInSeconds,
             depositDateInSeconds,
             false
@@ -656,7 +652,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         emit UnderlyingAssetDeposited(
             msg.sender,
             amountTransferrable,
-            amountOfyDai,
+            amountOfVBUSD,
             amountTransferrable
         );
     }
@@ -670,16 +666,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             amountTransferrable > 0,
             "Approve an amount > 0 for token before proceeding"
         );
-        bool isSuccessful =
-            _busd.transferFrom(
-                depositorAddress,
-                recipient,
-                amountTransferrable
-            );
-        require(
-            isSuccessful,
-            "Could not complete deposit process from token contract"
-        );
+        _busd.safeTransferFrom(depositorAddress,recipient,amountTransferrable);
 
         LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
 
@@ -691,12 +678,12 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         uint256 balanceAfterDeposit = lendingService.UserShares(recipient);
 
-        uint256 amountOfyDai = balanceAfterDeposit.sub(balanceBeforeDeposit);
+        uint256 amountOfVBUSD = balanceAfterDeposit.sub(balanceBeforeDeposit);
         ClientRecord memory clientRecord =
             _updateClientRecordAfterDeposit(
                 depositorAddress,
                 amountTransferrable,
-                amountOfyDai
+                amountOfVBUSD
             );
 
         bool exists =
@@ -719,7 +706,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         emit UnderlyingAssetDeposited(
             depositorAddress,
             amountTransferrable,
-            amountOfyDai,
+            amountOfVBUSD,
             clientRecord.derivativeBalance
         );
     }
