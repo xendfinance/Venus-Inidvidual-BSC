@@ -219,7 +219,7 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
 
     let amountToWithdraw = BigInt(9000671371);
 
-    await contractInstance.withdraw(amountToWithdraw);
+    await contractInstance.withdraw(amountToWithdraw.toString());
 
     let balanceAfterWithdrawal = await daiContract.methods
       .balanceOf(account1)
@@ -298,7 +298,7 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
 
     //waitTime(60);
 
-    let result = await contractInstance.WithdrawFromFixedDeposit(BigInt(depositRecord[0]), BigInt(amountToWithdraw.toFixed(0)));
+    let result = await contractInstance.WithdrawFromFixedDeposit(BigInt(depositRecord[0]).toString(), (BigInt(amountToWithdraw.toFixed(0))).toString());
 
     let balanceAfterWithdrawal = await daiContract.methods
      .balanceOf(account1)
