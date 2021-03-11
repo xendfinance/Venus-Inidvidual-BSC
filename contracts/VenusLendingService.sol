@@ -43,7 +43,7 @@ contract VenusLendingService {
         _venusLendingAdapter.WithdrawBySharesOnly(msg.sender, sharesAmount);
     }
 
-    function UserDAIBalance(address user) external view returns (uint256) {
+    function UserBUSDBalance(address user) external view returns (uint256) {
         return _venusLendingAdapter.GetDAIBalance(user);
     }
 

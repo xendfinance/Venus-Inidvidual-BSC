@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 
 contract ClientRecord is IClientRecordSchema, StorageOwners {
 
-    uint256 DepositRecordId;
+    uint256 DepositRecordId = 0;
 
     using SafeMath for uint256;
     
@@ -181,7 +181,7 @@ contract ClientRecord is IClientRecordSchema, StorageOwners {
         
         fixedDepositRecords.push(_fixedDeposit);
 
-    return DepositRecordId;
+    return _fixedDeposit.recordId;
     }
 
      function UpdateDepositRecordMapping(uint256 depositRecordId, uint256 amount, uint256 derivativeBalance,uint256 lockPeriodInSeconds,uint256 depositDateInSeconds, address payable depositor, bool hasWithdrawn) external onlyStorageOracle  {

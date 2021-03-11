@@ -74,5 +74,5 @@ interface IClientRecord is IClientRecordSchema {
      
      function CreateDepositorToDepositRecordIndexToRecordIDMapping(address payable depositor, uint recordId) external;
      
-     function CreateDepositorAddressToDepositRecordMapping (address payable depositor, uint recordId, uint amountDeposited, uint lockPeriodInSeconds, uint depositDateInSeconds, bool hasWithdrawn) external;
+     function CreateDepositorAddressToDepositRecordMapping (address payable depositor, uint recordId, uint amountDeposited, uint derivativeBalance,uint lockPeriodInSeconds, uint depositDateInSeconds, bool hasWithdrawn) external;
 }

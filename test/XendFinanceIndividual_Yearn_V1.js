@@ -35,6 +35,10 @@ const daiContract = new web3.eth.Contract(DaiContractABI, busdAddress);
 
 const unlockedAddress = "0x631fc1ea2270e98fbd9d92658ece0f5a269aa161";
 
+const EsusuAdapterContract = artifacts.require('EsusuAdapter');
+const EsusuAdapterWithdrawalDelegateContract = artifacts.require('EsusuAdapterWithdrawalDelegate');
+const EsusuStorageContract = artifacts.require('EsusuStorage');
+
 //  Approve a smart contract address or normal address to spend on behalf of the owner
 async function approveDai(spender, owner, amount) {
   await daiContract.methods.approve(spender, amount).send({ from: owner });
@@ -75,6 +79,10 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
   let clientRecordContract = null;
   let groupsContract = null;
   let venusAdapter = null;
+  let esusuAdapterContract = null;
+    let esusuAdapterWithdrawalDelegateContract = null;
+    let esusuStorageContract = null;
+    let esusuServiceContract = null;
 
   before(async () => {
     savingsConfigContract = await SavingsConfigContract.deployed();
@@ -85,6 +93,81 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
     contractInstance = await XendFinanceIndividual_Yearn_V1.deployed();
     venusAdapter = await VenusAdapter.deployed();
     groupsContract = await GroupsContract.deployed();
+    esusuAdapterWithdrawalDelegateContract = await EsusuAdapterWithdrawalDelegateContract.deployed();
+    esusuStorageContract = await EsusuStorageContract.deployed();
+    esusuAdapterContract = await EsusuAdapterContract.deployed();
+    esusuServiceContract = await EsusuServiceContract.deployed();
+
+
+
+    await xendTokenContract.grantAccess(contractInstance.address);
+    console.log("11->Xend Token Has Given access To Xend individual contract to transfer tokens ...");
+
+    await contractInstance.setAdapterAddress();
+    console.log("12->Set the adapter address ...");
+
+    await clientRecordContract.activateStorageOracle(contractInstance.address);
+     
+    await savingsConfigContract.createRule("XEND_FINANCE_COMMISION_DIVISOR", 0, 0, 100, 1)
+
+    await savingsConfigContract.createRule("XEND_FINANCE_COMMISION_DIVIDEND", 0, 0, 1, 1)
+
+    await savingsConfigContract.createRule("PERCENTAGE_PAYOUT_TO_USERS", 0, 0, 0, 1)
+
+    await savingsConfigContract.createRule("PERCENTAGE_AS_PENALTY", 0, 0, 1, 1);
+
+    //0. update fortube adapter
+    await venusLendingService.updateAdapter(VenusAdapter.address)
+
+     //12.
+     await rewardConfigContract.SetRewardParams("100000000000000000000000000", "10000000000000000000000000", "2", "7", "10","15", "4","60", "4");
+
+     //13. 
+     await rewardConfigContract.SetRewardActive(true);
+
+     await groupsContract.activateStorageOracle(contractInstance.address);
+     
+   
+  //3. Update the DaiLendingService Address in the EsusuAdapter Contract
+  await esusuAdapterContract.UpdateDaiLendingService(venusLendingService.address);
+  console.log("3->VenusLendingService Address Updated In EsusuAdapter ...");
+
+  //4. Update the EsusuAdapter Address in the EsusuService Contract
+  await esusuServiceContract.UpdateAdapter(esusuAdapterContract.address);
+  console.log("4->EsusuAdapter Address Updated In EsusuService ...");
+
+  //5. Activate the storage oracle in Groups.sol with the Address of the EsusuApter
+  await  groupsContract.activateStorageOracle(esusuAdapterContract.address);
+  console.log("5->EsusuAdapter Address Updated In Groups contract ...");
+
+  //6. Xend Token Should Grant access to the  Esusu Adapter Contract
+  await xendTokenContract.grantAccess(esusuAdapterContract.address);
+  console.log("6->Xend Token Has Given access To Esusu Adapter to transfer tokens ...");
+
+  //7. Esusu Adapter should Update Esusu Adapter Withdrawal Delegate
+  await esusuAdapterContract.UpdateEsusuAdapterWithdrawalDelegate(esusuAdapterWithdrawalDelegateContract.address);
+  console.log("7->EsusuAdapter Has Updated Esusu Adapter Withdrawal Delegate Address ...");
+
+  //8. Esusu Adapter Withdrawal Delegate should Update Dai Lending Service
+  await esusuAdapterWithdrawalDelegateContract.UpdateDaiLendingService(venusLendingService.address);
+  console.log("8->Esusu Adapter Withdrawal Delegate Has Updated Dai Lending Service ...");
+
+  //9. Esusu Service should update esusu adapter withdrawal delegate
+  await esusuServiceContract.UpdateAdapterWithdrawalDelegate(esusuAdapterWithdrawalDelegateContract.address);
+  console.log("9->Esusu Service Contract Has Updated  Esusu Adapter Withdrawal Delegate Address ...");
+
+  //10. Esusu Storage should Update Adapter and Adapter Withdrawal Delegate
+  await esusuStorageContract.UpdateAdapterAndAdapterDelegateAddresses(esusuAdapterContract.address,esusuAdapterWithdrawalDelegateContract.address);
+  console.log("10->Esusu Storage Contract Has Updated  Esusu Adapter and Esusu Adapter Withdrawal Delegate Address ...");
+
+  //11. Xend Token Should Grant access to the  Esusu Adapter Withdrawal Delegate Contract
+  await xendTokenContract.grantAccess(esusuAdapterWithdrawalDelegateContract.address);
+  console.log("11->Xend Token Has Given access To Esusu Adapter Withdrawal Delegate to transfer tokens ...");
+
+ //12. Set Group Creator Reward Percentage
+ await esusuAdapterWithdrawalDelegateContract.setGroupCreatorRewardPercent("100");
+ console.log("11-> Group Creator reward set on ESUSU Withdrawal Delegate ...");
+    
     //  Get the addresses and Balances of at least 2 accounts to be used in the test
     //  Send DAI to the addresses
     web3.eth.getAccounts().then(function (accounts) {
@@ -262,14 +345,16 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
      console.log(
        `Recipient: ${account1} DAI Balance before deposit: ${balanceBeforeDeposit}`
      );
-
-     let depositDateInSeconds = Date.now().toString();
      
-     let lockPeriodInSeconds  = "2"
+     let lockPeriodInSeconds  = "1"
 
      await contractInstance.setMinimumLockPeriod(lockPeriodInSeconds);
 
-     await contractInstance.FixedDeposit(depositDateInSeconds, lockPeriodInSeconds);
+     await contractInstance.FixedDeposit(lockPeriodInSeconds);
+
+    let totalTokenDeposited =  await groupsContract.getTokenDeposit(busdAddress);
+
+     console.log(BigInt(totalTokenDeposited).toString(), "total tokens deposited")
 
      let balanceAfterDeposit = await daiContract.methods
      .balanceOf(account1)
@@ -279,29 +364,44 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
      `Recipient: ${account1} DAI Balance after deposit: ${balanceAfterDeposit}`
    );
 
-     let depositRecord = await clientRecordContract.GetRecordById(1);
+     let depositRecord = await contractInstance.getFixedDepositRecord("1");
 
     
-     console.log(
-      `record id: ${BigInt(depositRecord[0])}`,
-      `depositor address:  ${BigInt(depositRecord[1])}`,
-      `amount:  ${BigInt(depositRecord[2])}`,
-      `derivative amount:  ${BigInt(depositRecord[3])}`,
-      `deposit date in seconds:  ${BigInt(depositRecord[4])}`,
-      `lock period in seconds:  ${BigInt(depositRecord[5])}`,
-      `withdrawn:  ${BigInt(depositRecord[6])}`,
-      "deposit record details"
-    );
+    //  console.log(
+    //   `record id: ${BigInt(depositRecord[0])}`,
+    //   `depositor address:  ${depositRecord[1]}`,
+    //   `amount:  ${BigInt(depositRecord[2])}`,
+    //   `derivative amount:  ${BigInt(depositRecord[3])}`,
+    //   `deposit date in seconds:  ${BigInt(depositRecord[4])}`,
+    //   `lock period in seconds:  ${BigInt(depositRecord[5])}`,
+    //   `withdrawn:  ${BigInt(depositRecord[6])}`,
+    //   "fixed deposit record details"
+    // );
+    console.log(depositRecord, "fixed deposit record")
 
-    //const waitTime = (seconds) => new Promise(resolve => setTimeout(resolve, seconds * 1000));
+    
+
+    const waitTime = (seconds) => new Promise(resolve => setTimeout(resolve, seconds * 1000));
 
     const pricePerFullShare = await venusAdapter.GetPricePerFullShare();
 
     let amountToWithdraw = depositRecord[2] / pricePerFullShare;
+    let currentTimeStamp = await contractInstance.currentTimeStamp();
+    console.log(BigInt(currentTimeStamp).toString(), "current timestamp");
 
-    //waitTime(60);
+    await waitTime(10);
 
-    let result = await contractInstance.WithdrawFromFixedDeposit(BigInt(depositRecord[0]));
+    currentTimeStamp = await contractInstance.currentTimeStamp();
+
+    console.log(BigInt(currentTimeStamp).toString(), "after await current timestamp");
+
+    await sendDai(approvedAmountToSpend, account1);
+ 
+    await approveDai(contractInstance.address, account1, approvedAmountToSpend);
+
+   await contractInstance.FixedDeposit(depositDateInSeconds, lockPeriodInSeconds);
+
+    let result = await contractInstance.WithdrawFromFixedDeposit("1");
 
     let balanceAfterWithdrawal = await daiContract.methods
      .balanceOf(account1)
@@ -314,7 +414,6 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
    assert(balanceAfterWithdrawal >= balanceAfterDeposit);
 
     // console.log(result)
-
     assert(result.receipt.status == true)
 
   })

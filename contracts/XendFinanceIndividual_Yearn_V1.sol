@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.6.6;
+pragma experimental ABIEncoderV2;
 
 import "./IClientRecordShema.sol";
 import "./IGroupSchema.sol";
@@ -16,9 +17,9 @@ import "./Address.sol";
 import "./ISavingsConfig.sol";
 import "./ISavingsConfigSchema.sol";
 import "./ITreasury.sol";
-import "./IVBUSD.sol";
 import "./IXendToken.sol";
 import "./IGroups.sol";
+import "./IVBUSD.sol";
 
 contract XendFinanceIndividual_Yearn_V1 is
     Ownable,
@@ -29,6 +30,8 @@ contract XendFinanceIndividual_Yearn_V1 is
     using SafeMath for uint256;
 
     using SafeERC20 for IERC20;
+
+    using SafeERC20 for IVBUSD;
 
     using Address for address payable;
 
@@ -55,12 +58,12 @@ contract XendFinanceIndividual_Yearn_V1 is
     IVenusLendingService lendingService;
     IERC20 _busd;
     IClientRecord clientRecordStorage;
+    IGroups groupStorage;
     IRewardConfig rewardConfig;
     ISavingsConfig savingsConfig;
     IVBUSD derivativeToken;
     ITreasury treasury;
     IXendToken xendToken;
-    IGroups groupStorage;
 
     bool isDeprecated;
 
@@ -68,11 +71,10 @@ contract XendFinanceIndividual_Yearn_V1 is
 
     mapping(address => uint256) MemberToXendTokenRewardMapping; //  This tracks the total amount of xend token rewards a member has received
 
-      uint256 _totalTokenReward;      //  This tracks the total number of token rewards distributed on the individual savings
-         address TokenAddress;
-      
+    uint256 _totalTokenReward; //  This tracks the total number of token rewards distributed on the individual savings
 
     address LendingAdapterAddress;
+    address TokenAddress;
 
     string constant XEND_FINANCE_COMMISION_DIVISOR =
         "XEND_FINANCE_COMMISION_DIVISOR";
@@ -91,10 +93,10 @@ contract XendFinanceIndividual_Yearn_V1 is
         address treasuryAddress
     ) public {
         lendingService = IVenusLendingService(lendingServiceAddress);
+        TokenAddress = tokenAddress;
         _busd = IERC20(tokenAddress);
-         TokenAddress = tokenAddress;
         clientRecordStorage = IClientRecord(clientRecordStorageAddress);
-         groupStorage = IGroups(groupStorageAddress);
+        groupStorage = IGroups(groupStorageAddress);
         savingsConfig = ISavingsConfig(savingsConfigAddress);
         rewardConfig = IRewardConfig(rewardConfigAddress);
         derivativeToken = IVBUSD(derivativeTokenAddress);
@@ -106,13 +108,17 @@ contract XendFinanceIndividual_Yearn_V1 is
         LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
     }
 
-    function setMinimumLockPeriod (uint256 minimumLockPeriod) external onlyNonDeprecatedCalls onlyOwner {
+    function setMinimumLockPeriod(uint256 minimumLockPeriod)
+        external
+        onlyNonDeprecatedCalls
+        onlyOwner
+    {
         minLockPeriod = minimumLockPeriod;
     }
 
-     function GetTotalTokenRewardDistributed() external view returns(uint256){
-            return _totalTokenReward;
-        }
+    function GetTotalTokenRewardDistributed() external view returns (uint256) {
+        return _totalTokenReward;
+    }
 
     function deprecateContract(address newServiceAddress)
         external
@@ -123,7 +129,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         clientRecordStorage.reAssignStorageOracle(newServiceAddress);
         uint256 derivativeTokenBalance =
             derivativeToken.balanceOf(address(this));
-        derivativeToken.transfer(newServiceAddress, derivativeTokenBalance);
+        derivativeToken.safeTransfer(newServiceAddress, derivativeTokenBalance);
     }
 
     function _UpdateMemberToXendTokeRewardMapping(
@@ -289,17 +295,33 @@ contract XendFinanceIndividual_Yearn_V1 is
         _withdraw(recipient, derivativeAmount);
     }
 
-    function WithdrawFromFixedDeposit(
-        uint256 recordId
-    ) external onlyNonDeprecatedCalls {
+    function getFixedDepositRecord(uint256 recordId)
+        external
+        view
+        returns (FixedDepositRecord memory)
+    {
+        return _getFixedDepositRecordById(recordId);
+    }
+
+    function WithdrawFromFixedDeposit(uint256 recordId)
+        external
+        onlyNonDeprecatedCalls
+    {
         address payable recipient = msg.sender;
 
         FixedDepositRecord memory depositRecord =
             _getFixedDepositRecordById(recordId);
 
-             uint256  derivativeAmount = depositRecord.derivativeBalance;
-        
-        require(derivativeAmount>0, "Cannot withdraw 0 shares");
+        // uint256 derivativeAmount = 100;
+
+        uint256 derivativeAmount = depositRecord.derivativeBalance;
+
+        require(derivativeAmount > 0, "Cannot withdraw 0 shares");
+
+        require(
+            depositRecord.depositorId == recipient,
+            "Withdraw can only be called by depositor"
+        );
 
         uint256 depositDate = depositRecord.depositDateInSeconds;
 
@@ -307,21 +329,28 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         _validateLockTimeHasElapsedAndHasNotWithdrawn(recordId);
 
-        
+        uint256 balanceBeforeWithdraw =
+            lendingService.UserBUSDBalance(address(this));
 
-        uint256 balanceBeforeWithdraw = lendingService.UserDAIBalance(address(this));
+        LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
 
-          LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
+        bool isApprovalSuccessful =
+            derivativeToken.approve(LendingAdapterAddress, derivativeAmount);
 
-        bool isApprovalSuccessful = derivativeToken.approve(LendingAdapterAddress, derivativeAmount);
-         
-         require(isApprovalSuccessful == true, 'could not approve idusd token for adapter contract');
+        require(
+            isApprovalSuccessful == true,
+            "could not approve idusd token for adapter contract"
+        );
 
         lendingService.WithdrawBySharesOnly(derivativeAmount);
 
-        uint256 balanceAfterWithdraw = lendingService.UserDAIBalance(address(this));
-        
-        require(balanceAfterWithdraw>balanceBeforeWithdraw, "Balance before needs to be greater than balance after");
+        uint256 balanceAfterWithdraw =
+            lendingService.UserBUSDBalance(address(this));
+
+        require(
+            balanceAfterWithdraw > balanceBeforeWithdraw,
+            "Balance before needs to be greater than balance after"
+        );
 
         uint256 amountOfUnderlyingAssetWithdrawn =
             balanceAfterWithdraw.sub(balanceBeforeWithdraw);
@@ -334,8 +363,6 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         _busd.safeTransfer(recipient, amountToSendToDepositor);
 
-       
-
         if (commissionFees > 0) {
             _busd.approve(address(treasury), commissionFees);
             treasury.depositToken(address(_busd));
@@ -343,7 +370,7 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         clientRecordStorage.UpdateDepositRecordMapping(
             recordId,
-            derivativeAmount,
+            depositRecord.amount,
             0,
             lockPeriod,
             depositDate,
@@ -354,13 +381,13 @@ contract XendFinanceIndividual_Yearn_V1 is
             recipient,
             depositRecord.recordId,
             depositRecord.amount,
+            derivativeAmount,
             lockPeriod,
             depositDate,
             true
         );
-        
 
-         _rewardUserWithTokens(lockPeriod, derivativeAmount, recipient);
+        _rewardUserWithTokens(lockPeriod, depositRecord.amount, recipient);
 
         emit DerivativeAssetWithdrawn(
             recipient,
@@ -376,23 +403,31 @@ contract XendFinanceIndividual_Yearn_V1 is
     {
         _validateUserBalanceIsSufficient(recipient, derivativeAmount);
 
-        uint256 balanceBeforeWithdraw = lendingService.UserDAIBalance(address(this));
- 
+        uint256 balanceBeforeWithdraw =
+            lendingService.UserBUSDBalance(address(this));
+
         LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
 
-        bool isApprovalSuccessful = derivativeToken.approve(LendingAdapterAddress, derivativeAmount);
-         
-         require(isApprovalSuccessful == true, 'could not approve idusd token for adapter contract');
+        bool isApprovalSuccessful =
+            derivativeToken.approve(LendingAdapterAddress, derivativeAmount);
+
+        require(
+            isApprovalSuccessful == true,
+            "could not approve idusd token for adapter contract"
+        );
 
         lendingService.WithdrawBySharesOnly(derivativeAmount);
 
-        uint256 balanceAfterWithdraw = lendingService.UserDAIBalance(address(this));
+        uint256 balanceAfterWithdraw =
+            lendingService.UserBUSDBalance(address(this));
 
-        require(balanceAfterWithdraw>balanceBeforeWithdraw, "Balance before needs to be greater than balance after");
-        
+        require(
+            balanceAfterWithdraw > balanceBeforeWithdraw,
+            "Balance before needs to be greater than balance after"
+        );
+
         uint256 amountOfUnderlyingAssetWithdrawn =
             balanceAfterWithdraw.sub(balanceBeforeWithdraw);
-            
 
         uint256 commissionFees =
             _computeXendFinanceCommisions(amountOfUnderlyingAssetWithdrawn);
@@ -451,15 +486,18 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         return worthOfMemberDepositNow.mul(dividend).div(divisor).div(100);
     }
-
+    function currentTimeStamp() external view returns (uint256) {
+        return now;
+    }
     function _validateLockTimeHasElapsedAndHasNotWithdrawn(uint256 recordId)
         internal
     {
-       FixedDepositRecord memory depositRecord =
+        FixedDepositRecord memory depositRecord =
             _getFixedDepositRecordById(recordId);
 
         uint256 lockPeriod = depositRecord.lockPeriodInSeconds;
-        uint256 maturityDate = depositRecord.depositDateInSeconds.add(lockPeriod);
+        uint256 maturityDate =
+            depositRecord.depositDateInSeconds.add(lockPeriod);
 
         bool hasWithdrawn = depositRecord.hasWithdrawn;
 
@@ -523,8 +561,11 @@ contract XendFinanceIndividual_Yearn_V1 is
 
     function _getFixedDepositRecordById(uint256 recordId)
         internal
+        view
         returns (FixedDepositRecord memory)
+
     {
+       
         (
             uint256 recordId,
             address payable depositorId,
@@ -534,37 +575,46 @@ contract XendFinanceIndividual_Yearn_V1 is
             uint256 lockPeriodInSeconds,
             bool hasWithdrawn
         ) = clientRecordStorage.GetRecordById(recordId);
+        FixedDepositRecord memory fixedDepositRecord =
+            FixedDepositRecord(
+                recordId,
+                depositorId,
+                hasWithdrawn,
+                amount,
+                depositDateInSeconds,
+                lockPeriodInSeconds,
+                amountOfyDai
+            );
+        return fixedDepositRecord;
     }
 
     function FixedDeposit(
-        uint256 depositDateInSeconds,
         uint256 lockPeriodInSeconds
     ) external onlyNonDeprecatedCalls {
-        address payable depositorAddress = msg.sender;
-
         address recipient = address(this);
 
-        uint256 amountTransferrable =
-            _busd.allowance(depositorAddress, recipient);
+        uint256 depositDateInSeconds = now;
 
-            require(lockPeriodInSeconds >= minLockPeriod, "Minimum lock period must be 3 months");
+        uint256 amountTransferrable = _busd.allowance(msg.sender, recipient);
+
+        require(
+            lockPeriodInSeconds >= minLockPeriod,
+            "Minimum lock period must be 3 months"
+        );
 
         require(
             amountTransferrable > 0,
             "Approve an amount > 0 for token before proceeding"
         );
         bool isSuccessful =
-            _busd.transferFrom(
-                depositorAddress,
-                recipient,
-                amountTransferrable
-            );
+            _busd.transferFrom(msg.sender, recipient, amountTransferrable);
         require(
             isSuccessful,
             "Could not complete deposit process from token contract"
         );
+
         LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
-        
+
         _busd.approve(LendingAdapterAddress, amountTransferrable);
 
         uint256 balanceBeforeDeposit = lendingService.UserShares(recipient);
@@ -575,34 +625,36 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         uint256 amountOfyDai = balanceAfterDeposit.sub(balanceBeforeDeposit);
 
-     uint recordId = clientRecordStorage.CreateDepositRecordMapping(
-            amountTransferrable,
-            amountOfyDai,
-            lockPeriodInSeconds,
-            depositDateInSeconds,
-            depositorAddress,
-            false
-        );
-
+        uint256 recordId =
+            clientRecordStorage.CreateDepositRecordMapping(
+                amountTransferrable,
+                amountOfyDai,
+                lockPeriodInSeconds,
+                depositDateInSeconds,
+                msg.sender,
+                false
+            );
 
         clientRecordStorage
             .CreateDepositorToDepositRecordIndexToRecordIDMapping(
-            depositorAddress,
+            msg.sender,
             recordId
         );
 
         clientRecordStorage.CreateDepositorAddressToDepositRecordMapping(
-            depositorAddress,
+            msg.sender,
             recordId,
             amountTransferrable,
+            amountOfyDai,
             lockPeriodInSeconds,
             depositDateInSeconds,
             false
         );
-_updateTotalTokenDepositAmount(amountTransferrable);
+
+        _updateTotalTokenDepositAmount(amountTransferrable);
 
         emit UnderlyingAssetDeposited(
-            depositorAddress,
+            msg.sender,
             amountTransferrable,
             amountOfyDai,
             amountTransferrable
@@ -628,9 +680,9 @@ _updateTotalTokenDepositAmount(amountTransferrable);
             isSuccessful,
             "Could not complete deposit process from token contract"
         );
-        
+
         LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
-        
+
         _busd.approve(LendingAdapterAddress, amountTransferrable);
 
         uint256 balanceBeforeDeposit = lendingService.UserShares(recipient);
@@ -661,7 +713,9 @@ _updateTotalTokenDepositAmount(amountTransferrable);
                 clientRecord.derivativeTotalWithdrawn
             );
         }
-_updateTotalTokenDepositAmount(amountTransferrable);
+
+        _updateTotalTokenDepositAmount(amountTransferrable);
+
         emit UnderlyingAssetDeposited(
             depositorAddress,
             amountTransferrable,
@@ -670,7 +724,7 @@ _updateTotalTokenDepositAmount(amountTransferrable);
         );
     }
 
-      function _updateTotalTokenDepositAmount(uint256 amount) internal {
+    function _updateTotalTokenDepositAmount(uint256 amount) internal {
         groupStorage.incrementTokenDeposit(TokenAddress, amount);
     }
 
@@ -766,7 +820,7 @@ _updateTotalTokenDepositAmount(amountTransferrable);
                 recipient,
                 numberOfRewardTokens
             );
-             //  increase the total number of xend token rewards distributed
+            //  increase the total number of xend token rewards distributed
             _totalTokenReward = _totalTokenReward.add(numberOfRewardTokens);
             _emitXendTokenReward(recipient, numberOfRewardTokens);
         }
