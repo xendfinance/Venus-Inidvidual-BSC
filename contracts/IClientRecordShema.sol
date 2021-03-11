@@ -17,6 +17,7 @@ interface IClientRecordSchema {
         uint256 amount;
         uint256 depositDateInSeconds;
         uint256 lockPeriodInSeconds;
+        uint256 derivativeBalance;
     }
     struct RecordIndex {
         bool exists;
