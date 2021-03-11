@@ -18,6 +18,7 @@ import "./ISavingsConfigSchema.sol";
 import "./ITreasury.sol";
 import "./IVBUSD.sol";
 import "./IXendToken.sol";
+import "./IGroups.sol";
 
 contract XendFinanceIndividual_Yearn_V1 is
     Ownable,
@@ -59,6 +60,7 @@ contract XendFinanceIndividual_Yearn_V1 is
     IVBUSD derivativeToken;
     ITreasury treasury;
     IXendToken xendToken;
+    IGroups groupStorage;
 
     bool isDeprecated;
 
@@ -67,7 +69,7 @@ contract XendFinanceIndividual_Yearn_V1 is
     mapping(address => uint256) MemberToXendTokenRewardMapping; //  This tracks the total amount of xend token rewards a member has received
 
       uint256 _totalTokenReward;      //  This tracks the total number of token rewards distributed on the individual savings
-
+         address TokenAddress;
       
 
     address LendingAdapterAddress;
@@ -81,6 +83,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         address lendingServiceAddress,
         address tokenAddress,
         address clientRecordStorageAddress,
+        address groupStorageAddress,
         address savingsConfigAddress,
         address derivativeTokenAddress,
         address rewardConfigAddress,
@@ -89,7 +92,9 @@ contract XendFinanceIndividual_Yearn_V1 is
     ) public {
         lendingService = IVenusLendingService(lendingServiceAddress);
         _busd = IERC20(tokenAddress);
+         TokenAddress = tokenAddress;
         clientRecordStorage = IClientRecord(clientRecordStorageAddress);
+         groupStorage = IGroups(groupStorageAddress);
         savingsConfig = ISavingsConfig(savingsConfigAddress);
         rewardConfig = IRewardConfig(rewardConfigAddress);
         derivativeToken = IVBUSD(derivativeTokenAddress);
@@ -285,13 +290,16 @@ contract XendFinanceIndividual_Yearn_V1 is
     }
 
     function WithdrawFromFixedDeposit(
-        uint256 recordId,
-        uint256 derivativeAmount
+        uint256 recordId
     ) external onlyNonDeprecatedCalls {
         address payable recipient = msg.sender;
 
         FixedDepositRecord memory depositRecord =
             _getFixedDepositRecordById(recordId);
+
+             uint256  derivativeAmount = depositRecord.derivativeBalance;
+        
+        require(derivativeAmount>0, "Cannot withdraw 0 shares");
 
         uint256 depositDate = depositRecord.depositDateInSeconds;
 
@@ -336,13 +344,12 @@ contract XendFinanceIndividual_Yearn_V1 is
         clientRecordStorage.UpdateDepositRecordMapping(
             recordId,
             derivativeAmount,
+            0,
             lockPeriod,
             depositDate,
             msg.sender,
             true
         );
-
-        
         clientRecordStorage.CreateDepositorAddressToDepositRecordMapping(
             recipient,
             depositRecord.recordId,
@@ -448,10 +455,11 @@ contract XendFinanceIndividual_Yearn_V1 is
     function _validateLockTimeHasElapsedAndHasNotWithdrawn(uint256 recordId)
         internal
     {
-        FixedDepositRecord memory depositRecord =
+       FixedDepositRecord memory depositRecord =
             _getFixedDepositRecordById(recordId);
 
         uint256 lockPeriod = depositRecord.lockPeriodInSeconds;
+        uint256 maturityDate = depositRecord.depositDateInSeconds.add(lockPeriod);
 
         bool hasWithdrawn = depositRecord.hasWithdrawn;
 
@@ -460,7 +468,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         uint256 currentTimeStamp = now;
 
         require(
-            currentTimeStamp >= lockPeriod,
+            currentTimeStamp >= maturityDate,
             "Funds are still locked, wait until lock period expires"
         );
     }
@@ -521,6 +529,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             uint256 recordId,
             address payable depositorId,
             uint256 amount,
+            uint256 amountOfyDai,
             uint256 depositDateInSeconds,
             uint256 lockPeriodInSeconds,
             bool hasWithdrawn
@@ -566,8 +575,9 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         uint256 amountOfyDai = balanceAfterDeposit.sub(balanceBeforeDeposit);
 
-       uint256 recordId = clientRecordStorage.CreateDepositRecordMapping(
+     uint recordId = clientRecordStorage.CreateDepositRecordMapping(
             amountTransferrable,
+            amountOfyDai,
             lockPeriodInSeconds,
             depositDateInSeconds,
             depositorAddress,
@@ -589,6 +599,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             depositDateInSeconds,
             false
         );
+_updateTotalTokenDepositAmount(amountTransferrable);
 
         emit UnderlyingAssetDeposited(
             depositorAddress,
@@ -650,13 +661,17 @@ contract XendFinanceIndividual_Yearn_V1 is
                 clientRecord.derivativeTotalWithdrawn
             );
         }
-
+_updateTotalTokenDepositAmount(amountTransferrable);
         emit UnderlyingAssetDeposited(
             depositorAddress,
             amountTransferrable,
             amountOfyDai,
             clientRecord.derivativeBalance
         );
+    }
+
+      function _updateTotalTokenDepositAmount(uint256 amount) internal {
+        groupStorage.incrementTokenDeposit(TokenAddress, amount);
     }
 
     function _updateClientRecordAfterDeposit(

@@ -73,6 +73,7 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
   let venusLendingService = null;
   let rewardConfigContract = null;
   let clientRecordContract = null;
+  let groupsContract = null;
   let venusAdapter = null;
 
   before(async () => {
@@ -83,6 +84,7 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
     rewardConfigContract = await RewardConfigContract.deployed();
     contractInstance = await XendFinanceIndividual_Yearn_V1.deployed();
     venusAdapter = await VenusAdapter.deployed();
+    groupsContract = await GroupsContract.deployed();
     //  Get the addresses and Balances of at least 2 accounts to be used in the test
     //  Send DAI to the addresses
     web3.eth.getAccounts().then(function (accounts) {
@@ -284,9 +286,10 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
       `record id: ${BigInt(depositRecord[0])}`,
       `depositor address:  ${BigInt(depositRecord[1])}`,
       `amount:  ${BigInt(depositRecord[2])}`,
-      `deposit date in seconds:  ${BigInt(depositRecord[3])}`,
-      `lock period in seconds:  ${BigInt(depositRecord[4])}`,
-      `withdrawn:  ${BigInt(depositRecord[5])}`,
+      `derivative amount:  ${BigInt(depositRecord[3])}`,
+      `deposit date in seconds:  ${BigInt(depositRecord[4])}`,
+      `lock period in seconds:  ${BigInt(depositRecord[5])}`,
+      `withdrawn:  ${BigInt(depositRecord[6])}`,
       "deposit record details"
     );
 
@@ -298,7 +301,7 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
 
     //waitTime(60);
 
-    let result = await contractInstance.WithdrawFromFixedDeposit(BigInt(depositRecord[0]), BigInt(amountToWithdraw.toFixed(0)));
+    let result = await contractInstance.WithdrawFromFixedDeposit(BigInt(depositRecord[0]));
 
     let balanceAfterWithdrawal = await daiContract.methods
      .balanceOf(account1)

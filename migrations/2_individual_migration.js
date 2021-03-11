@@ -101,6 +101,7 @@ module.exports = function (deployer) {
       VenusLendingService.address,
       busdAddress,
       ClientRecordContract.address,
+      GroupsContract.address,
       SavingsConfigContract.address,
       ibbusdAddress,
       RewardConfigContract.address,
