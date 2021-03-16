@@ -258,7 +258,7 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
     console.log(contractInstance.address, "address");
 
     //  Give allowance to the xend finance individual to spend DAI on behalf of account 1 and 2
-    var approvedAmountToSpend = BigInt(2000000000000000000); //   1,000 Dai
+    var approvedAmountToSpend = BigInt(20000000000000000000); //   1,000 Dai
 
     await sendDai(approvedAmountToSpend, account1);
 
@@ -300,11 +300,19 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
 
     let derivedDeposit = BigInt(result[4]);
 
+    let derivativeBalance = BigInt(result[3])
+  
     console.log(derivedDeposit * value, 'here is the guy')
 
-    let amountToWithdraw = BigInt(9000671371);
+    let amountToWithdraw = derivativeBalance.toString()
 
-    await contractInstance.withdraw(amountToWithdraw.toString());
+    console.log(`Derivative Balance Before Withdrawal: ${derivativeBalance}`);
+
+    let balanceBeforeWithdrawal = await daiContract.methods.balanceOf(account1).call();
+
+    console.log(`Recipient: ${account1} DAI Balance Before withdrawal: ${balanceBeforeWithdrawal}`);
+
+    await contractInstance.withdraw(amountToWithdraw);
 
     let balanceAfterWithdrawal = await daiContract.methods
       .balanceOf(account1)
@@ -399,7 +407,7 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
  
     await approveDai(contractInstance.address, account1, approvedAmountToSpend);
 
-   await contractInstance.FixedDeposit(depositDateInSeconds, lockPeriodInSeconds);
+    await contractInstance.FixedDeposit(lockPeriodInSeconds);
 
     let result = await contractInstance.WithdrawFromFixedDeposit("1");
 
