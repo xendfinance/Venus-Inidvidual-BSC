@@ -349,7 +349,7 @@ contract XendFinanceIndividual_Yearn_V1 is
 
         require(
             balanceAfterWithdraw > balanceBeforeWithdraw,
-            "Balance before needs to be greater than balance after"
+            "Balance after needs to be greater than balance before"
         );
 
         uint256 amountOfUnderlyingAssetWithdrawn =
@@ -381,7 +381,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             recipient,
             depositRecord.recordId,
             depositRecord.amount,
-            derivativeAmount,
+            0,
             lockPeriod,
             depositDate,
             true
