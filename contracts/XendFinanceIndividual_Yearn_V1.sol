@@ -17,7 +17,7 @@ import "./Address.sol";
 import "./ISavingsConfig.sol";
 import "./ISavingsConfigSchema.sol";
 import "./ITreasury.sol";
-import "./IXendToken.sol";
+import "./IRewardBridge.sol";
 import "./IGroups.sol";
 import "./IVBUSD.sol";
 
@@ -34,6 +34,8 @@ contract XendFinanceIndividual_Yearn_V1 is
     using SafeERC20 for IVBUSD;
 
     using Address for address payable;
+    using Address for address;
+
 
     event UnderlyingAssetDeposited(
         address payable user,
@@ -63,7 +65,7 @@ contract XendFinanceIndividual_Yearn_V1 is
     ISavingsConfig savingsConfig;
     IVBUSD derivativeToken;
     ITreasury treasury;
-    IXendToken xendToken;
+    IRewardBridge rewardBridge;
 
     bool isDeprecated;
 
@@ -89,7 +91,7 @@ contract XendFinanceIndividual_Yearn_V1 is
         address savingsConfigAddress,
         address derivativeTokenAddress,
         address rewardConfigAddress,
-        address xendTokenAddress,
+        address rewardBridgeAddress,
         address treasuryAddress
     ) public {
         lendingService = IVenusLendingService(lendingServiceAddress);
@@ -101,12 +103,18 @@ contract XendFinanceIndividual_Yearn_V1 is
         rewardConfig = IRewardConfig(rewardConfigAddress);
         derivativeToken = IVBUSD(derivativeTokenAddress);
         treasury = ITreasury(treasuryAddress);
-        xendToken = IXendToken(xendTokenAddress);
+        rewardBridge = IRewardBridge(rewardBridgeAddress);
     }
 
     function setAdapterAddress() external onlyOwner {
         LendingAdapterAddress = lendingService.GetVenusLendingAdapterAddress();
     }
+    function updateRewardBridgeAddress(address newRewardBridgeAddress) external onlyOwner{
+        require(newRewardBridgeAddress!=address(0x0),"Invalid address");
+        require(newRewardBridgeAddress.isContract(),"Invalid contract address");
+        rewardBridge = IRewardBridge(newRewardBridgeAddress);
+    }
+
 
     function setMinimumLockPeriod(uint256 minimumLockPeriod)
         external
@@ -802,7 +810,8 @@ contract XendFinanceIndividual_Yearn_V1 is
             );
 
         if (numberOfRewardTokens > 0) {
-            xendToken.mint(recipient, numberOfRewardTokens);
+            rewardBridge.rewardUser(numberOfRewardTokens,recipient);
+
             _UpdateMemberToXendTokeRewardMapping(
                 recipient,
                 numberOfRewardTokens
