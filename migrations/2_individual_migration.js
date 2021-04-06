@@ -58,6 +58,7 @@ module.exports = function (deployer) {
     await deployer.deploy(XendTokenContract, "Xend Token", "$XEND", "18", "200000000000000000000000000");
 
     console.log("Xend Token Contract address", XendTokenContract.address);
+    
     await deployer.deploy(RewardBridgeContract, XendTokenContract.address);
     console.log("Reward Bridge Contract address", RewardBridgeContract.address);
 
