@@ -17,6 +17,7 @@ const ibbusdAddress = "0x95c78222B3D6e262426483D42CfA53685A67Ab9D"
 const EsusuAdapterContract = artifacts.require('EsusuAdapter');
 const EsusuAdapterWithdrawalDelegateContract = artifacts.require('EsusuAdapterWithdrawalDelegate');
 const EsusuStorageContract = artifacts.require('EsusuStorage');
+const RewardBridgeContract = artifacts.require('RewardBridge');
 // const web3 = new Web3("HTTP://127.0.0.1:8545");
 // const daiContract = new web3.eth.Contract(DaiContractABI, DaiContractAddress);
 
@@ -54,7 +55,8 @@ module.exports = function (deployer) {
       "RewardConfigContract address: " + RewardConfigContract.address
     );
 
-    await deployer.deploy(XendTokenContract, "Xend Token", "$XEND", "18", "200000000000000000000000000")
+    await deployer.deploy(XendTokenContract, "Xend Token", "$XEND", "18", "200000000000000000000000000");
+    await deployer.deploy(RewardBridgeContract, XendTokenContract.address);
 
     console.log("Xend Token Contract address", XendTokenContract.address);
 
