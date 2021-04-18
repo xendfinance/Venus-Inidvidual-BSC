@@ -17,6 +17,7 @@ const ibbusdAddress = "0x95c78222B3D6e262426483D42CfA53685A67Ab9D"
 const EsusuAdapterContract = artifacts.require('EsusuAdapter');
 const EsusuAdapterWithdrawalDelegateContract = artifacts.require('EsusuAdapterWithdrawalDelegate');
 const EsusuStorageContract = artifacts.require('EsusuStorage');
+const RewardBridgeContract = artifacts.require('RewardBridge');
 // const web3 = new Web3("HTTP://127.0.0.1:8545");
 // const daiContract = new web3.eth.Contract(DaiContractABI, DaiContractAddress);
 
@@ -54,9 +55,13 @@ module.exports = function (deployer) {
       "RewardConfigContract address: " + RewardConfigContract.address
     );
 
-    await deployer.deploy(XendTokenContract, "Xend Token", "$XEND", "18", "200000000000000000000000000")
+    await deployer.deploy(XendTokenContract, "Xend Token", "$XEND", "18", "200000000000000000000000000");
 
     console.log("Xend Token Contract address", XendTokenContract.address);
+    
+    await deployer.deploy(RewardBridgeContract, XendTokenContract.address);
+    console.log("Reward Bridge Contract address", RewardBridgeContract.address);
+
 
     await deployer.deploy(VenusLendingService);
 
@@ -125,6 +130,7 @@ module.exports = function (deployer) {
     let esusuAdapterWithdrawalDelegateContract = null;
     let esusuStorageContract = null;
     let esusuServiceContract = null;
+    let rewardBridgeContract = null;
     
 
     savingsConfigContract = await SavingsConfigContract.deployed();
@@ -138,72 +144,9 @@ module.exports = function (deployer) {
     esusuStorageContract = await EsusuStorageContract.deployed();
     esusuAdapterContract = await EsusuAdapterContract.deployed();
     esusuServiceContract = await EsusuServiceContract.deployed();
+    rewardBridgeContract = await RewardBridgeContract.deployed();
 
 
-//     await xendTokenContract.grantAccess(XendFinanceIndividual_Yearn_V1Contract.address);
-//     console.log("11->Xend Token Has Given access To Xend individual contract to transfer tokens ...");
-
-//     await individualContract.setAdapterAddress();
-//     console.log("12->Set the adapter address ...");
-
-//     await clientRecordContract.activateStorageOracle(XendFinanceIndividual_Yearn_V1Contract.address);
-     
-//     await savingsConfigContract.createRule("XEND_FINANCE_COMMISION_DIVISOR", 0, 0, 100, 1)
-
-//     await savingsConfigContract.createRule("XEND_FINANCE_COMMISION_DIVIDEND", 0, 0, 1, 1)
-
-//     await savingsConfigContract.createRule("PERCENTAGE_PAYOUT_TO_USERS", 0, 0, 0, 1)
-
-//     await savingsConfigContract.createRule("PERCENTAGE_AS_PENALTY", 0, 0, 1, 1);
-
-//     //0. update fortube adapter
-//     await venusLendingService.updateAdapter(VenusAdapter.address)
-
-//      //12.
-//      await rewardConfigContract.SetRewardParams("100000000000000000000000000", "10000000000000000000000000", "2", "7", "10","15", "4","60", "4");
-
-//      //13. 
-//      await rewardConfigContract.SetRewardActive(true);
-   
-//   //3. Update the DaiLendingService Address in the EsusuAdapter Contract
-//   await esusuAdapterContract.UpdateDaiLendingService(venusLendingService.address);
-//   console.log("3->VenusLendingService Address Updated In EsusuAdapter ...");
-
-//   //4. Update the EsusuAdapter Address in the EsusuService Contract
-//   await esusuServiceContract.UpdateAdapter(esusuAdapterContract.address);
-//   console.log("4->EsusuAdapter Address Updated In EsusuService ...");
-
-//   //5. Activate the storage oracle in Groups.sol with the Address of the EsusuApter
-//   await  groupsContract.activateStorageOracle(esusuAdapterContract.address);
-//   console.log("5->EsusuAdapter Address Updated In Groups contract ...");
-
-//   //6. Xend Token Should Grant access to the  Esusu Adapter Contract
-//   await xendTokenContract.grantAccess(esusuAdapterContract.address);
-//   console.log("6->Xend Token Has Given access To Esusu Adapter to transfer tokens ...");
-
-//   //7. Esusu Adapter should Update Esusu Adapter Withdrawal Delegate
-//   await esusuAdapterContract.UpdateEsusuAdapterWithdrawalDelegate(esusuAdapterWithdrawalDelegateContract.address);
-//   console.log("7->EsusuAdapter Has Updated Esusu Adapter Withdrawal Delegate Address ...");
-
-//   //8. Esusu Adapter Withdrawal Delegate should Update Dai Lending Service
-//   await esusuAdapterWithdrawalDelegateContract.UpdateDaiLendingService(venusLendingService.address);
-//   console.log("8->Esusu Adapter Withdrawal Delegate Has Updated Dai Lending Service ...");
-
-//   //9. Esusu Service should update esusu adapter withdrawal delegate
-//   await esusuServiceContract.UpdateAdapterWithdrawalDelegate(esusuAdapterWithdrawalDelegateContract.address);
-//   console.log("9->Esusu Service Contract Has Updated  Esusu Adapter Withdrawal Delegate Address ...");
-
-//   //10. Esusu Storage should Update Adapter and Adapter Withdrawal Delegate
-//   await esusuStorageContract.UpdateAdapterAndAdapterDelegateAddresses(esusuAdapterContract.address,esusuAdapterWithdrawalDelegateContract.address);
-//   console.log("10->Esusu Storage Contract Has Updated  Esusu Adapter and Esusu Adapter Withdrawal Delegate Address ...");
-
-//   //11. Xend Token Should Grant access to the  Esusu Adapter Withdrawal Delegate Contract
-//   await xendTokenContract.grantAccess(esusuAdapterWithdrawalDelegateContract.address);
-//   console.log("11->Xend Token Has Given access To Esusu Adapter Withdrawal Delegate to transfer tokens ...");
-
-//  //12. Set Group Creator Reward Percentage
-//  await esusuAdapterWithdrawalDelegateContract.setGroupCreatorRewardPercent(10);
-//  console.log("11-> Group Creator reward set on ESUSU Withdrawal Delegate ...");
     
   });
 };
