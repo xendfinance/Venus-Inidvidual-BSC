@@ -395,7 +395,12 @@ contract XendFinanceIndividual_Yearn_V1 is
             true
         );
 
-        _rewardUserWithTokens(lockPeriod, depositRecord.amount, recipient);
+        uint secondsElapsed = 0;
+        if(lockPeriod>depositDate){
+            secondsElapsed = lockPeriod.sub(depositDate);
+        }
+
+        _rewardUserWithTokens(secondsElapsed, depositRecord.amount, recipient);
 
         emit DerivativeAssetWithdrawn(
             recipient,
@@ -504,8 +509,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             _getFixedDepositRecordById(recordId);
 
         uint256 lockPeriod = depositRecord.lockPeriodInSeconds;
-        uint256 maturityDate =
-            depositRecord.depositDateInSeconds.add(lockPeriod);
+        uint256 maturityDate = depositRecord.lockPeriodInSeconds;
 
         bool hasWithdrawn = depositRecord.hasWithdrawn;
 
@@ -820,6 +824,12 @@ contract XendFinanceIndividual_Yearn_V1 is
             _totalTokenReward = _totalTokenReward.add(numberOfRewardTokens);
             _emitXendTokenReward(recipient, numberOfRewardTokens);
         }
+    }
+
+    function withdrawTokens(address tokenAddress) external onlyOwner{
+        IERC20 token = IERC20(tokenAddress);
+        uint256 balance =  token.balanceOf(address(this));
+        token.transfer(owner,balance);        
     }
 
     modifier onlyNonDeprecatedCalls() {
