@@ -106,16 +106,8 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
     await contractInstance.setAdapterAddress();
     console.log("12->Set the adapter address ...");
 
-    await clientRecordContract.activateStorageOracle(contractInstance.address);
-     
-    await savingsConfigContract.createRule("XEND_FINANCE_COMMISION_DIVISOR", 0, 0, 100, 1)
-
-    await savingsConfigContract.createRule("XEND_FINANCE_COMMISION_DIVIDEND", 0, 0, 1, 1)
-
-    await savingsConfigContract.createRule("PERCENTAGE_PAYOUT_TO_USERS", 0, 0, 0, 1)
-
-    await savingsConfigContract.createRule("PERCENTAGE_AS_PENALTY", 0, 0, 1, 1);
-
+    await clientRecordContract.activateStorageOracle(contractInstance.address);     
+  
     //0. update fortube adapter
     await venusLendingService.updateAdapter(VenusAdapter.address)
 
