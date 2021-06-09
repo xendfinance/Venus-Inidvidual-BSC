@@ -69,7 +69,7 @@ contract XendFinanceIndividual_Yearn_V1 is
 
     bool isDeprecated;
 
-    uint256 minLockPeriod = 7890000; //minimum lock period is three months by default
+    uint256 minLockPeriod = 2630000; //minimum lock period is three months by default
 
     mapping(address => uint256) MemberToXendTokenRewardMapping; //  This tracks the total amount of xend token rewards a member has received
 
@@ -169,7 +169,7 @@ contract XendFinanceIndividual_Yearn_V1 is
     }
 
     function getClientRecord(address depositor)
-        external
+        external view
         onlyNonDeprecatedCalls
         returns (
             address payable _address,
@@ -192,7 +192,7 @@ contract XendFinanceIndividual_Yearn_V1 is
     }
 
     function getClientRecord()
-        external
+        external view
         onlyNonDeprecatedCalls
         returns (
             address payable _address,
