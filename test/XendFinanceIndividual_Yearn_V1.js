@@ -33,7 +33,7 @@ const busdAddress = "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56";
 
 const daiContract = new web3.eth.Contract(DaiContractABI, busdAddress);
 
-const unlockedAddress = "0x631fc1ea2270e98fbd9d92658ece0f5a269aa161";
+const unlockedAddress = "0xEfB826Ab5D566DB9d5Af50e17B0cEc5A60c18AA3";
 
 const EsusuAdapterContract = artifacts.require('EsusuAdapter');
 const EsusuAdapterWithdrawalDelegateContract = artifacts.require('EsusuAdapterWithdrawalDelegate');
@@ -106,16 +106,8 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
     await contractInstance.setAdapterAddress();
     console.log("12->Set the adapter address ...");
 
-    await clientRecordContract.activateStorageOracle(contractInstance.address);
-     
-    await savingsConfigContract.createRule("XEND_FINANCE_COMMISION_DIVISOR", 0, 0, 100, 1)
-
-    await savingsConfigContract.createRule("XEND_FINANCE_COMMISION_DIVIDEND", 0, 0, 1, 1)
-
-    await savingsConfigContract.createRule("PERCENTAGE_PAYOUT_TO_USERS", 0, 0, 0, 1)
-
-    await savingsConfigContract.createRule("PERCENTAGE_AS_PENALTY", 0, 0, 1, 1);
-
+    await clientRecordContract.activateStorageOracle(contractInstance.address);     
+  
     //0. update fortube adapter
     await venusLendingService.updateAdapter(VenusAdapter.address)
 
@@ -170,63 +162,76 @@ contract("XendFinanceIndividual_Yearn_V1", () => {
     
     //  Get the addresses and Balances of at least 2 accounts to be used in the test
     //  Send DAI to the addresses
-    web3.eth.getAccounts().then(function (accounts) {
-      account1 = accounts[0];
-      account2 = accounts[1];
-      account3 = accounts[2];
 
-      //  send money from the unlocked dai address to accounts 1 and 2
-      var amountToSend = BigInt(2000000000000000000); //   10,000 Dai
+    var amountToSend = BigInt(10000000000000000000); //   10,000 Dai
 
-      //  get the eth balance of the accounts
-      web3.eth.getBalance(account1, function (err, result) {
-        if (err) {
-          console.log(err);
-        } else {
-          account1Balance = web3.utils.fromWei(result, "ether");
-          console.log(
-            "Account 1: " +
-              accounts[0] +
-              "  Balance: " +
-              account1Balance +
-              " ETH"
-          );
+    let accounts = await web3.eth.getAccounts();
+    account1 = accounts[0];
+    account2 = accounts[1];
+    account3 = accounts[2];
+
+    await sendDai(amountToSend, account1);
+    await sendDai(amountToSend, account2);
+    await sendDai(amountToSend, account3);
+
+
+    // web3.eth.getAccounts().then(function (accounts) {
+    //   account1 = accounts[0];
+    //   account2 = accounts[1];
+    //   account3 = accounts[2];
+
+    //   //  send money from the unlocked dai address to accounts 1 and 2
+    //   var amountToSend = BigInt(2000000000000000000); //   10,000 Dai
+
+    //   //  get the eth balance of the accounts
+    //   web3.eth.getBalance(account1, function (err, result) {
+    //     if (err) {
+    //       console.log(err);
+    //     } else {
+    //       account1Balance = web3.utils.fromWei(result, "ether");
+    //       console.log(
+    //         "Account 1: " +
+    //           accounts[0] +
+    //           "  Balance: " +
+    //           account1Balance +
+    //           " ETH"
+    //       );
           
-        }
-      });
+    //     }
+    //   });
 
-      web3.eth.getBalance(account2, function (err, result) {
-        if (err) {
-          console.log(err);
-        } else {
-          account2Balance = web3.utils.fromWei(result, "ether");
-          console.log(
-            "Account 2: " +
-              accounts[1] +
-              "  Balance: " +
-              account2Balance +
-              " ETH"
-          );
-          sendDai(amountToSend, account2);
-        }
-      });
+    //   web3.eth.getBalance(account2, function (err, result) {
+    //     if (err) {
+    //       console.log(err);
+    //     } else {
+    //       account2Balance = web3.utils.fromWei(result, "ether");
+    //       console.log(
+    //         "Account 2: " +
+    //           accounts[1] +
+    //           "  Balance: " +
+    //           account2Balance +
+    //           " ETH"
+    //       );
+    //       sendDai(amountToSend, account2);
+    //     }
+    //   });
 
-      web3.eth.getBalance(account3, function (err, result) {
-        if (err) {
-          console.log(err);
-        } else {
-          account3Balance = web3.utils.fromWei(result, "ether");
-          console.log(
-            "Account 3: " +
-              accounts[2] +
-              "  Balance: " +
-              account3Balance +
-              " ETH"
-          );
-          sendDai(amountToSend, account3);
-        }
-      });
-    });
+    //   web3.eth.getBalance(account3, function (err, result) {
+    //     if (err) {
+    //       console.log(err);
+    //     } else {
+    //       account3Balance = web3.utils.fromWei(result, "ether");
+    //       console.log(
+    //         "Account 3: " +
+    //           accounts[2] +
+    //           "  Balance: " +
+    //           account3Balance +
+    //           " ETH"
+    //       );
+    //       sendDai(amountToSend, account3);
+    //     }
+    //   });
+    // });
   });
 
   it("Should deploy the XendFinanceIndividual_Yearn_V1 smart contracts", async () => {

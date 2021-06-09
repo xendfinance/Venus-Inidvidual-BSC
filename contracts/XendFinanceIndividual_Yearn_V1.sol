@@ -78,10 +78,11 @@ contract XendFinanceIndividual_Yearn_V1 is
     address LendingAdapterAddress;
     address TokenAddress;
 
-    string constant XEND_FINANCE_COMMISION_DIVISOR =
-        "XEND_FINANCE_COMMISION_DIVISOR";
+    string constant XEND_FINANCE_COMMISION_FLEXIBLE_DIVIDEND =
+        "XEND_FINANCE_COMMISION_FLEXIBLE_DIVIDEND";
     string constant XEND_FINANCE_COMMISION_DIVIDEND =
         "XEND_FINANCE_COMMISION_DIVIDEND";
+    string XEND_FEE_PRECISION = "XEND_FEE_PRECISION";
 
     constructor(
         address lendingServiceAddress,
@@ -364,7 +365,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             balanceAfterWithdraw.sub(balanceBeforeWithdraw);
 
         uint256 commissionFees =
-            _computeXendFinanceCommisions(amountOfUnderlyingAssetWithdrawn);
+            _computeXendFinanceCommisions(amountOfUnderlyingAssetWithdrawn, depositRecord.amount);
 
         uint256 amountToSendToDepositor =
             amountOfUnderlyingAssetWithdrawn.sub(commissionFees);
@@ -443,7 +444,7 @@ contract XendFinanceIndividual_Yearn_V1 is
             balanceAfterWithdraw.sub(balanceBeforeWithdraw);
 
         uint256 commissionFees =
-            _computeXendFinanceCommisions(amountOfUnderlyingAssetWithdrawn);
+            _computeXendFinanceCommisions(amountOfUnderlyingAssetWithdrawn,0);
 
         uint256 amountToSendToDepositor =
             amountOfUnderlyingAssetWithdrawn.sub(commissionFees);
@@ -485,20 +486,35 @@ contract XendFinanceIndividual_Yearn_V1 is
         );
     }
 
-    function _computeXendFinanceCommisions(uint256 worthOfMemberDepositNow)
+   
+    function _computeXendFinanceCommisions(uint256 worthOfMemberDepositNow, uint256 initialAmountDeposited)
         internal
         returns (uint256)
     {
         uint256 dividend = _getDividend();
-        uint256 divisor = _getDivisor();
+        uint256 flexibleDividend = _getFlexibleDividend();
+        uint256 feePrecision = _getFeePrecision();
 
         require(
             worthOfMemberDepositNow > 0,
             "member deposit really isn't worth much"
         );
 
-        return worthOfMemberDepositNow.mul(dividend).div(divisor).div(100);
+        if(initialAmountDeposited==0){
+            return ((worthOfMemberDepositNow.mul(flexibleDividend)).div(feePrecision)).div(100);
+        }
+        else{        
+            if(worthOfMemberDepositNow>initialAmountDeposited){
+                uint256 profit = worthOfMemberDepositNow.sub(initialAmountDeposited);
+                return ((profit.mul(dividend)).div(feePrecision)).div(100);
+            }
+            else{
+                return 0;
+            }
+        }
+
     }
+
     function currentTimeStamp() external view returns (uint256) {
         return now;
     }
@@ -523,14 +539,14 @@ contract XendFinanceIndividual_Yearn_V1 is
         );
     }
 
-    function _getDivisor() internal returns (uint256) {
+    function _getFlexibleDividend() internal returns (uint256) {
         (
             uint256 minimumDivisor,
             uint256 maximumDivisor,
             uint256 exactDivisor,
             bool appliesDivisor,
             RuleDefinition ruleDefinitionDivisor
-        ) = savingsConfig.getRuleSet(XEND_FINANCE_COMMISION_DIVISOR);
+        ) = savingsConfig.getRuleSet(XEND_FINANCE_COMMISION_FLEXIBLE_DIVIDEND);
 
         require(appliesDivisor, "unsupported rule defintion for rule set");
 
@@ -557,6 +573,18 @@ contract XendFinanceIndividual_Yearn_V1 is
             "unsupported rule defintion for penalty percentage rule set"
         );
         return exactDividend;
+    }
+
+    function _getFeePrecision() internal returns (uint256) {
+        (,,uint256 feePrecision,bool appliesDividend,RuleDefinition ruleDefinition) = savingsConfig.getRuleSet(XEND_FEE_PRECISION);
+
+        require(appliesDividend, "unsupported rule defintion for rule set");
+
+        require(
+            ruleDefinition == RuleDefinition.VALUE,
+            "unsupported rule defintion for fee precision"
+        );
+        return feePrecision;
     }
 
     function deposit() external onlyNonDeprecatedCalls {
